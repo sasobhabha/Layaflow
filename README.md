@@ -1,3 +1,12 @@
+---
+title: LayaFlow
+emoji: 🥁
+colorFrom: red
+colorTo: yellow
+sdk: docker
+app_port: 7860
+---
+
 # LayaFlow: Interactive Mridangam & Konnakol Rhythmic Studio
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/sasobhabha/Layaflow)
