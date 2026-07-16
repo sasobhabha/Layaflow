@@ -5,22 +5,22 @@ import json
 import os
 import tempfile
 import subprocess
+from pathlib import Path
 from fastapi import FastAPI, WebSocket
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
 
 app = FastAPI()
 
-# Allow cross-origin requests from the Cloudflare Pages frontend.
-# After deployment, replace "*" with your actual Pages URL for security:
-#   e.g. "https://layaflow.pages.dev"
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Serve the built Vite frontend from /static
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+if STATIC_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+    # Serve other static files (classifier.wasm, etc.)
+    for f in STATIC_DIR.iterdir():
+        if f.is_file() and f.name != "index.html":
+            pass  # handled by the catch-all mount below
 
 # Global models
 whisperx_model = None
@@ -132,6 +132,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 
     except Exception as e:
         print(f"WebSocket closed or error: {e}")
+
+# Serve frontend static files (must be after all API/WebSocket routes)
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

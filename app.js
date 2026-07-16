@@ -937,9 +937,8 @@ class LayaSpeechRecognizer {
     
     return new Promise((resolve, reject) => {
       if (this.onStatusChange) this.onStatusChange("Connecting to Backend...", false);
-      const backendHost = import.meta.env.VITE_BACKEND_URL || "localhost:8000";
       const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
-      this.ws = new WebSocket(`${wsProtocol}://${backendHost}/ws/speech`);
+      this.ws = new WebSocket(`${wsProtocol}://${location.host}/ws/speech`);
       
       this.ws.onopen = () => {
         console.log("Connected to WhisperX Backend");

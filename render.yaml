@@ -1,34 +1,13 @@
-# Render Blueprint - deploys both frontend and backend with one click
+# Render Blueprint - single service, builds from root Dockerfile
 # https://render.com/docs/blueprint-spec
 
 services:
-  # Python backend (WhisperX / Vosk STT)
   - type: web
-    name: layaflow-backend
+    name: layaflow
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
     plan: starter
     region: oregon
-    healthCheckPath: /docs
+    healthCheckPath: /
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11"
-
-staticSites:
-  # Vite frontend
-  - type: static
-    name: layaflow
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: true
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-    envVars:
-      - key: VITE_BACKEND_URL
-        fromService:
-          type: web
-          name: layaflow-backend
-          property: host
+      - key: PORT
+        value: "8000"
