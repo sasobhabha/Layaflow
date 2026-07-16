@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LayaFlow - Interactive Mridangam & Konnakol Synthesis</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Animated Background Canvas -->
+  <canvas id="bg-canvas" class="bg-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <span class="laya-accent">Laya</span><span class="flow-accent">Flow</span>
+      </div>
+      <h1 class="main-title">Mridangam & Konnakol Rhythmic Studio</h1>
+      <p class="subtitle">An interactive Carnatic percussion synthesizer, speech-to-text transcriber, and custom formant-vocalizer engine.</p>
+    </header>
+
+    <div class="main-layout">
+      <!-- Left Panel: Rhythmic & Instrument Controls -->
+      <section class="panel control-panel glass">
+        <h2 class="panel-title"><span class="icon">⚙️</span> Rhythmic Setup</h2>
+        
+        <div class="control-group">
+          <label for="sruti-select">Sruti (Fundamental Pitch)</label>
+          <div class="sruti-control">
+            <select id="sruti-select" class="styled-select">
+              <option value="130.81">C2 (Low male)</option>
+              <option value="138.59">C#2 / Kattai 1</option>
+              <option value="146.83">D2 / Kattai 2</option>
+              <option value="155.56" selected>D#2 / Kattai 3</option>
+              <option value="164.81">E2 / Kattai 4</option>
+              <option value="174.61">F2 / Kattai 5</option>
+              <option value="196.00">G2 (High male)</option>
+              <option value="220.00">A2 (Low female)</option>
+              <option value="233.08">A#2 / Kattai 5.5</option>
+              <option value="246.94">B2 / Kattai 6</option>
+              <option value="261.63">C3 / Kattai 7</option>
+              <option value="277.18">C#3 / Kattai 7.5</option>
+              <option value="293.66">D3 / Kattai 8</option>
+            </select>
+            <span id="sruti-hz-display" class="badge">155.6 Hz</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="label-with-value">
+            <label for="bpm-slider">Tempo (BPM)</label>
+            <span id="bpm-value" class="slider-value">120</span>
+          </div>
+          <input type="range" id="bpm-slider" min="60" max="240" value="120" class="styled-slider">
+        </div>
+
+        <div class="control-group">
+          <label for="tala-select">Tala (Rhythm Cycle)</label>
+          <select id="tala-select" class="styled-select">
+            <option value="adi">Adi Tala (8 Beats - Laghu 4 + Dhrutam 2 + Dhrutam 2)</option>
+            <option value="rupaka">Rupaka Tala (3 Beats - Dhrutam 2 + Laghu 4)</option>
+            <option value="misra_chapu">Misra Chapu (7 Beats - 3 + 2 + 2)</option>
+            <option value="khanda_chapu">Khanda Chapu (5 Beats - 2 + 3)</option>
+            <option value="rupaka_fast">Rupaka (Fast - 3 beats equal spacing)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="subdivision-select">Subdivision (Gati)</label>
+          <select id="subdivision-select" class="styled-select">
+            <option value="4" selected>Chatusra (4 notes/beat - 16th notes)</option>
+            <option value="3">Tisra (3 notes/beat - triplets)</option>
+            <option value="5">Khanda (5 notes/beat - quintuplets)</option>
+            <option value="7">Misra (7 notes/beat - septuplets)</option>
+          </select>
+        </div>
+
+        <div class="toggle-group">
+          <div class="toggle-item">
+            <span class="toggle-label">Metronome Click</span>
+            <label class="switch">
+              <input type="checkbox" id="metronome-toggle" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          
+          <div class="toggle-item">
+            <span class="toggle-label">Mridangam Sound</span>
+            <label class="switch">
+              <input type="checkbox" id="mridangam-toggle" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="toggle-item">
+            <span class="toggle-label">Konnakol TTS Voice</span>
+            <label class="switch">
+              <input type="checkbox" id="tts-toggle" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="synth-voice-selection control-group">
+          <label for="tts-voice-type">TTS Engine Mode</label>
+          <select id="tts-voice-type" class="styled-select">
+            <option value="formant" selected>Procedural Formant Synthesizer (Zero-latency)</option>
+            <option value="speech-api">System Speech Engine (Browser Native)</option>
+          </select>
+        </div>
+
+        <div class="sound-wave-container">
+          <canvas id="waveform-canvas" width="300" height="80"></canvas>
+          <span class="wave-label">OUTPUT WAVEFORM</span>
+        </div>
+      </section>
+
+      <!-- Center Panel: The Interactive Mridangam -->
+      <section class="panel instrument-panel glass">
+        <h2 class="panel-title"><span class="icon">🥁</span> Virtual Mridangam</h2>
+        
+        <div class="instrument-container">
+          <div class="mridangam-wrapper">
+            <!-- Left Drum Head: Thoppi (Bass) -->
+            <div class="drum-head-container left-head">
+              <div class="head-label">THOPPI (Left Head)</div>
+              <div class="drum-head thoppi" id="thoppi-head" style="position: relative; overflow: hidden;">
+                <div class="thoppi-half thom-half" data-stroke="thom" style="position: absolute; width: 100%; height: 100%; clip-path: polygon(0 0, 100% 0, 100% 100%); background: #d4c8b8; box-shadow: inset 0 0 15px rgba(100, 80, 60, 0.2); transition: all 0.15s ease;">
+                  <span class="stroke-hint" style="position: absolute; top: 35%; right: 20%; transform: rotate(45deg);">Thom</span>
+                </div>
+                <div class="thoppi-half tha-half" data-stroke="tha" style="position: absolute; width: 100%; height: 100%; clip-path: polygon(0 0, 100% 100%, 0 100%); background: repeating-linear-gradient(45deg, #4a3f35, #4a3f35 4px, #3a3229 4px, #3a3229 8px); box-shadow: inset 0 0 10px rgba(0,0,0,0.8); transition: all 0.15s ease;">
+                  <span class="stroke-hint" style="position: absolute; bottom: 35%; left: 20%; transform: rotate(45deg);">Tha</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Drum Body (Wood) -->
+            <div class="drum-body">
+              <div class="body-straps"></div>
+              <div class="wood-grain"></div>
+              <div class="body-center-ring"></div>
+            </div>
+
+            <!-- Right Drum Head: Valanthalai (Treble) -->
+            <div class="drum-head-container right-head">
+              <div class="head-label">VALANTHALAI (Right Head)</div>
+              <div class="drum-head valai" id="valai-head">
+                <div class="outer-rim vettu-right" data-stroke="nam">
+                  <div class="inner-skin meetu-right" data-stroke="dhi">
+                    <div class="black-spot saatham" data-stroke="ka">
+                      <span class="stroke-hint">Ka</span>
+                    </div>
+                    <span class="stroke-hint-middle">Dhim</span>
+                  </div>
+                  <span class="stroke-hint-outer-valai">Nam</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stroke Quick Pad -->
+        <div class="quick-pads">
+          <button class="pad-btn" data-stroke="thom"><strong>Thom</strong> (Bass Open)</button>
+          <button class="pad-btn" data-stroke="tha"><strong>Tha</strong> (Bass Flat)</button>
+          <button class="pad-btn" data-stroke="dhi"><strong>Dheem</strong> (Treble Harmonic)</button>
+          <button class="pad-btn" data-stroke="nam"><strong>Nam</strong> (Treble Rim)</button>
+          <button class="pad-btn" data-stroke="cha"><strong>Chapu</strong> (Treble Ring)</button>
+          <button class="pad-btn" data-stroke="ka"><strong>Ka / Ki</strong> (Treble Flat)</button>
+        </div>
+
+        <!-- Metronome & Tala Visualizer -->
+        <div class="tala-visualizer-container">
+          <h3 class="visualizer-header">Tala Beat Tracker</h3>
+          <div class="tala-beats" id="tala-beats-grid">
+            <!-- Beat nodes will be generated dynamically -->
+          </div>
+          <div class="tala-gesture-display">
+            <span class="gesture-label">Current Gesture:</span>
+            <span id="current-gesture-text" class="gesture-value">-</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Konnakol Editor & Speech Engine -->
+      <section class="panel script-panel glass">
+        <h2 class="panel-title"><span class="icon">🗣️</span> Konnakol Speech & Script</h2>
+        
+        <div class="editor-header">
+          <label for="preset-select">Load Preset Composition</label>
+          <select id="preset-select" class="styled-select">
+            <option value="" disabled selected>-- Select a Pattern --</option>
+            <option value="sarva_laghu">Adi Tala: Basic Sarva Laghu (8 Beats)</option>
+            <option value="sarva_laghu_2">Adi Tala: Double Speed Sarva Laghu</option>
+            <option value="tisra_gati">Tisra Gati (3 subdivision) Basic pattern</option>
+            <option value="mohra">Adi Tala: Mohra (Rhythmic climax build)</option>
+            <option value="korvai">Adi Tala: Korvai (Mathematical resolution)</option>
+            <option value="misra_chapu_pattern">Misra Chapu Cycle (7 Beats)</option>
+            <option value="khanda_chapu_pattern">Khanda Chapu Cycle (5 Beats)</option>
+          </select>
+        </div>
+
+        <div class="editor-area">
+          <div class="editor-label-container">
+            <label for="konnakol-editor">Konnakol Script Editor</label>
+            <span class="tooltip-trigger">ℹ️
+              <span class="tooltip-text">Type syllables separated by spaces. Use '|' to separate beats or sections. Syllables supported: tha, thom, dhi, dheem, nam, ka, ki, ta, jo, nu, lan, ghu.</span>
+            </span>
+          </div>
+          <textarea id="konnakol-editor" placeholder="Type Konnakol syllables here (e.g. tha ka dhi mi | tha ka jo nu |)..." spellcheck="false">tha ka dhi mi | tha ka jo nu | tha ka dhi mi | tha ka jo nu |
+tha-ki-ta tha-ki-ta | tha ka dhi mi tha-ki-ta |
+dhi - thom - | dhi dhi thom - | dhi dhi dhi thom |
+tha-di-gi-na-thom | tha-di-gi-na-thom | tha-di-gi-na-thom |</textarea>
+        </div>
+
+        <!-- Audio Recording & STT Voice Section -->
+        <div class="stt-section">
+          <h3>Vocal Recognition (Speech-to-Text)</h3>
+          <p class="description-text">Speak Konnakol syllables into your mic (e.g., "tha ka dhi mi"). The AI will parse phonetic equivalents and insert them into the script!</p>
+          
+          <div class="stt-controls">
+            <button id="mic-btn" class="action-btn mic-btn">
+              <span class="mic-icon">🎙️</span> Start Recording Vocalizations
+            </button>
+            <span id="stt-status" class="stt-status idle">Microphone inactive</span>
+          </div>
+          
+          <div class="recognition-box">
+            <span class="label">Heard Speech:</span>
+            <div id="heard-speech-text" class="heard-text">...</div>
+          </div>
+          <div class="mapped-box">
+            <span class="label">Mapped Syllables:</span>
+            <div id="mapped-syllables-text" class="mapped-text">...</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-buttons">
+          <button id="play-btn" class="main-action-btn play">
+            <span class="btn-icon">▶</span> Play Studio
+          </button>
+          <button id="stop-btn" class="main-action-btn stop" disabled>
+            <span class="btn-icon">■</span> Stop
+          </button>
+          <button id="clear-btn" class="secondary-btn">Clear Script</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Features & Educational Info -->
+    <footer class="app-footer glass">
+      <div class="footer-section">
+        <h4>About Konnakol & Mridangam</h4>
+        <p><strong>Konnakol</strong> is the Carnatic art of vocal percussion, where rhythmic phrases are spoken using syllables like <em>Tha</em>, <em>Dhi</em>, <em>Thom</em>, and <em>Nam</em>. The <strong>Mridangam</strong> is the primary double-sided barrel drum of South India, translating these vocalizations into metallic ringing and deep resonant sliding tones.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Voice Mapping & AI Parsing</h4>
+        <p>The Speech-to-Text engine listens to normal English transcriptions (e.g. "taco", "day", "tea", "tom") and uses an approximate phonetic alignment to restore the Indian classical syllables (<em>tha</em>, <em>dhi</em>, <em>thom</em>, etc.) based on acoustical proximity.</p>
+      </div>
+      <div class="footer-section">
+        <h4>How to Play</h4>
+        <ol>
+          <li>Click parts of the 3D-styled drum to play manually.</li>
+          <li>Load a preset composition or type custom syllables.</li>
+          <li>Click <strong>Play Studio</strong> to hear the synthesized drum and custom vocalizations in perfect rhythm.</li>
+        </ol>
+      </div>
+    </footer>
+  </div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

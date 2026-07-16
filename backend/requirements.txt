@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+websockets
+vosk
+git+https://github.com/m-bain/whisperx.git
+numpy
+scipy
