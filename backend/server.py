@@ -26,25 +26,52 @@ if STATIC_DIR.is_dir():
 whisperx_model = None
 vosk_model = None
 
-# Initialize WhisperX
+# Detect available RAM
+import shutil
+total_ram_gb = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') / (1024 ** 3) \
+    if hasattr(os, 'sysconf') else shutil.disk_usage('/').total  # fallback won't be accurate but won't crash
 try:
-    import whisperx
-    device = "cpu" # Defaulting to CPU for Mac compatibility, change to "mps" if preferred and working
-    compute_type = "int8"
-    print("Loading WhisperX model (this may take a moment)...")
-    whisperx_model = whisperx.load_model("base", device, compute_type=compute_type)
-    print("WhisperX loaded successfully.")
-except Exception as e:
-    print(f"Failed to load WhisperX: {e}")
+    # More portable: use /proc/meminfo on Linux (Docker), fallback for macOS
+    with open('/proc/meminfo', 'r') as f:
+        for line in f:
+            if line.startswith('MemTotal:'):
+                total_ram_gb = int(line.split()[1]) / (1024 * 1024)  # KB to GB
+                break
+except FileNotFoundError:
+    pass  # macOS or non-Linux — use os.sysconf value above
 
-# Initialize Vosk
+WHISPERX_MIN_RAM_GB = 1.5
+print(f"System RAM detected: {total_ram_gb:.1f} GB (WhisperX requires >= {WHISPERX_MIN_RAM_GB} GB)")
+
+# Initialize WhisperX (only if enough RAM)
+if total_ram_gb >= WHISPERX_MIN_RAM_GB:
+    try:
+        import whisperx
+        device = "cpu"
+        compute_type = "int8"
+        print("Loading WhisperX model (this may take a moment)...")
+        whisperx_model = whisperx.load_model("base", device, compute_type=compute_type)
+        print("✅ WhisperX loaded successfully.")
+    except Exception as e:
+        print(f"⚠️  Failed to load WhisperX: {e}")
+else:
+    print(f"⏭️  Skipping WhisperX (not enough RAM: {total_ram_gb:.1f} GB < {WHISPERX_MIN_RAM_GB} GB)")
+
+# Initialize Vosk (always attempt as fallback)
 try:
     from vosk import Model, KaldiRecognizer
     print("Loading Vosk fallback model...")
     vosk_model = Model(lang="en-us")
-    print("Vosk loaded successfully.")
+    print("✅ Vosk loaded successfully.")
 except Exception as e:
-    print(f"Failed to load Vosk: {e}. (Ensure vosk model is downloaded if needed)")
+    print(f"⚠️  Failed to load Vosk: {e}")
+
+if whisperx_model:
+    print("🎯 STT Engine: WhisperX (primary) + Vosk (fallback)")
+elif vosk_model:
+    print("🎯 STT Engine: Vosk only")
+else:
+    print("❌ No STT engine available!")
 
 @app.websocket("/ws/speech")
 async def websocket_endpoint(websocket: WebSocket):
